@@ -61,7 +61,7 @@ import time
 import os
 import fitz
 
-IMAGE_PATH = "../../data/images/page_1.png"
+IMAGE_PATH = "../../data/images/page_2.png"
 MODEL_ID = "lightonai/LightOnOCR-2-1B"
 MAX_DIMENSION = 1024
 
@@ -97,10 +97,19 @@ def resize_image(image_path, max_dim = 1024):
 
 # 3. Chuan bi du lieu
 image = resize_image(IMAGE_PATH, MAX_DIMENSION)
-prompt = "<|vision_start|><|image_pad|><|vision_end|>"
+# prompt = "<|vision_start|><|image_pad|><|vision_end|>"
+prompt = (
+    "<|im_start|>user\n"
+    "<|vision_start|><|image_pad|><|vision_end|>"
+    "Transcribe the text in this image verbatim.\n"
+    "<|im_end|>\n"
+    "<|im_start|>assistant\n"
+)
+
 sampling_params = SamplingParams(
     temperature = 0.01,
     max_tokens = 2048,
+    repetition_penalty = 1.15,
     stop_token_ids = [151643, 151645]
 )
 inputs = {
@@ -142,16 +151,18 @@ class OCRService:
         )
     
     def convert_pdf_to_img(self, image_path):
+        list_output_img_path = []
         doc = fitz.open(image_path)
         for page_num in range(doc.page_count):
             page = doc.load_page(page_num)
             pix = page.get_pixmap(dpi=300)
-            image_path = os.path.join(IMAGE_PATH, f"page_{page_num+1}.png")
-            pix.save(image_path)
-            print(f"Saved {image_path}")
+            output_image_path = os.path.join(IMAGE_PATH, f"page_{page_num+1}.png")
+            list_output_img_path.append(output_image_path)
+            pix.save(output_image_path)
+            print(f"Saved {output_image_path}")
         
             doc.close()
-        return None
+        return list_output_img_path
     
     def image_preprocess(self, image):
         return None
