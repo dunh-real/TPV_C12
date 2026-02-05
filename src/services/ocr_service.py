@@ -1,21 +1,13 @@
 INPUT_PATH = "../../data/raw/QĐ 8327-QĐ-BCA-H01 30-10-19 phê duyệt chủ trương đầu tư 53r4534.pdf"
 IMAGE_PATH = "../../data/images/"
 
-class OCRService:
-    def __init__(self):
-        self.model = None
-        
-    def get_input(self, input_path):
-        return None
-
-
 from transformers import LightOnOcrForConditionalGeneration, LightOnOcrProcessor
 import torch
 from pdf2image import convert_from_path
 import os
 import time
 import fitz
-
+from llm_service import extract_document_info
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 # print(device)
 
@@ -54,8 +46,11 @@ output_ids = model.generate(**inputs, max_new_tokens=1024)
 generated_ids = output_ids[0, inputs["input_ids"].shape[1]:]
 output_text = processor.decode(generated_ids, skip_special_tokens=False)
 
+print(output_text)
+# print(f"Executed time: {ex_time:.4f} seconds")
+
+json_str = extract_document_info(output_text)
 end_time = time.perf_counter()
 ex_time = end_time - start_time
-
-print(output_text)
 print(f"Executed time: {ex_time:.4f} seconds")
+print(json_str)
