@@ -125,68 +125,45 @@ class THANHTOANTAMUNG(BaseModel):
     bao_lanh_bao_hanh: Optional[str] = None
     so_tra_don_vi_thu_huong: Optional[FundingDetail] = None
     giu_lai_cho_quyet_toan: Optional[str] = None
-    
-EXTRACTION_CONFIG = {
-    "CHU_TRUONG": {
-        "model": CHUTRUONG
-    },
-    "THONG_TIN_DU_AN": {
-        "model": THONGTINDUAN
-    },
-    "KE_H0ACH_LCNT": {
-        "model": KEHOACHLCNT
-    },
-    "QUAN_LY_GOI_THAU": {
-        "model": QUANLYGOITHAU
-    }, 
-    "HOP_DONG": {
-        "model": HOPDONG
-    },
-    "THANH_TOAN_TAM_UNG": {
-        "model": THANHTOANTAMUNG
-    }
-}
 
-Model_llm_name = 'qwen2.5:latest'
-prompt_service = PromptService()
-
-def extract_document_info(doc_type, context, json_tempalte):
-    # Get keys by document type
-    extraction_config = EXTRACTION_CONFIG.get(doc_type)
-    model_schema = extraction_config['model']
+MODEL_LLM_NAME = 'qwen2.5:latest'
     
-    # Get prompt by document type
-    context_prompt = prompt_service.get_prompt_by_type(doc_type, context, json_tempalte)
-    
-    try:
-        response = ollama.chat(
-            model = Model_llm_name,
-            messages = [
-                {'role': 'user', 'content': context_prompt},
-            ],
-            options = {
-                'temperature': 0.0,
-            },
-            format=model_schema.model_json_schema()
-        )
+class LLMService:
+    def __init__(self, MODEL_LLM_NAME):
+        self.name_model = MODEL_LLM_NAME
+        self.prompt_service = PromptService()
+        self.extraction_config = {
+            "CHU_TRUONG": {"model": CHUTRUONG},
+            "THONG_TIN_DU_AN": {"model": THONGTINDUAN},
+            "KE_HOACH_LCNT": {"model": KEHOACHLCNT},
+            "QUAN_LY_GOI_THAU": {"model": QUANLYGOITHAU},
+            "HOP_DONG": {"model": HOPDONG},
+            "THANH_TOAN_TAM_UNG": {"model": THANHTOANTAMUNG}
+        }
         
-        content = response['message']['content']
+    def extract_document_info(self, doc_type, context, json_tempalte):
+        # Get keys by document type
+        extracter = self.extraction_config.get(doc_type)
+        model_schema = extracter['model']
         
-        return json.loads(content)
-    
-    except Exception as e:
-        return f"Error: {str(e)}"
-    
-    
-    """
-    format output llm thanh str co dau markdown de nhan dien tung phan, tach text cho de
-    ##Item1
-    #Itemname
-    tenvanban
-    #ItemContent
-    Congvancudan36
-    
-    ##Item2
-    
-    viet ham xu ly convert output text -> json
-    """
+        # Get prompt by document type
+        context_prompt = self.prompt_service.get_prompt_by_type(doc_type, context, json_tempalte)
+        
+        try:
+            response = ollama.chat(
+                model = self.name_model,
+                messages = [
+                    {'role': 'user', 'content': context_prompt},
+                ],
+                options = {
+                    'temperature': 0.0,
+                },
+                format=model_schema.model_json_schema()
+            )
+            
+            content = response['message']['content']
+            
+            return json.loads(content)
+        
+        except Exception as e:
+            return f"Error: {str(e)}"

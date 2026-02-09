@@ -6,26 +6,29 @@ context = ""
 result_json = {}
 
 CHU_TRUONG_PROMPT = """
-#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. 
-
-#TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
-Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
-Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
-
+#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. Nhiệm vụ của bạn là hoàn thiện một cấu trúc JSON dựa trên văn bản <context> được cung cấp.
 JSON INPUT bao gồm các trường thông tin sau:
-FIELDS:
-    - so_quyet_dinh: Doc number (after "Số:", "Số QĐ:", "Số TTr:", "Số BC:").
-    - ngay_quyet_dinh: Date (dd/MM/yyyy). Keep original format if unsure.
-    - ten_du_an: Full project name. KEEP prefix "Dự án", "Công trình", "Tên dự án" if present. Extract EXACTLY as written (e.g. "Dự án: Cầu A" -> "Dự án: Cầu A"). DO NOT remove prefix.
-    - chu_dau_tu: Primary investor. If multiple, pick main one.
-    - tong_muc_dau_tu: Total investment. PRIORITY 1: Find explicit "Tổng mức đầu tư:" OR "Tổng cộng:" OR "Cộng:" OR "TMĐT:" line. PRIORITY 2: Sum components if needed. WARNING: CALCULATE SLOWLY AND PRECISELY digit-by-digit. FORMAT: INTEGER ONLY string (VNĐ). Handle all units: "trăm nghìn tỷ"->x10^15,"chục nghìn tỷ"->x10^14,"nghìn tỷ"->x10^12, "trăm tỷ" ->x10^11, "chục tỷ" ->x10^10, "tỷ"->x10^9,"trăm triệu"->x10^8,"chục triệu"->x10^7, "triệu"->x10^6, "trăm nghìn"->x10^5,"chục nghìn"->x10^4, "nghìn"->x10^3, "trăm"->x100, "chục"->x10. REMOVE dots/commas/text. Ex: "401 tỷ" -> "401000000000".
-    - muc_tieu_du_an: Goals/objectives text.
-    - quy_mo_dau_tu: Scale/scope text. Preserve units.
-    - thoi_gian_thuc_hien: Duration/timeline info.
-    - thoi_gian_khoi_cong: Start date/time. If explicit start missing, extract from thoi_gian_thuc_hien (e.g., "Quý III, IV/2019" -> "Quý III/2019"; "từ X đến Y" -> X).
-    - thoi_gian_hoan_thanh: Completion date/time. If explicit end missing, extract from thoi_gian_thuc_hien (e.g., "Quý III, IV/2019" -> "Quý IV/2019"; "từ X đến Y" -> Y).
-    - thanh_phan_nguon_von: List [{{"stt": "1", "nguon_von": "", "gia_tri": ""}}].
-    CRITICAL: ALWAYS create at least 1 entry. NEVER return empty array [].
+    FIELDS:
+        - so_quyet_dinh: Doc number (after "Số:", "Số QĐ:", "Số TTr:", "Số BC:").
+        - ngay_quyet_dinh: Date (dd/MM/yyyy). Keep original format if unsure.
+        - ten_du_an: Full project name. KEEP prefix "Dự án", "Công trình", "Tên dự án" if present. Extract EXACTLY as written (e.g. "Dự án: Cầu A" -> "Dự án: Cầu A"). DO NOT remove prefix.
+        - chu_dau_tu: Primary investor. If multiple, pick main one.
+        - tong_muc_dau_tu: Total investment. PRIORITY 1: Find explicit "Tổng mức đầu tư:" OR "Tổng cộng:" OR "Cộng:" OR "TMĐT:" line. PRIORITY 2: Sum components if needed. WARNING: CALCULATE SLOWLY AND PRECISELY digit-by-digit. FORMAT: INTEGER ONLY string (VNĐ). Handle all units: "trăm nghìn tỷ"->x10^15,"chục nghìn tỷ"->x10^14,"nghìn tỷ"->x10^12, "trăm tỷ" ->x10^11, "chục tỷ" ->x10^10, "tỷ"->x10^9,"trăm triệu"->x10^8,"chục triệu"->x10^7, "triệu"->x10^6, "trăm nghìn"->x10^5,"chục nghìn"->x10^4, "nghìn"->x10^3, "trăm"->x100, "chục"->x10. REMOVE dots/commas/text. Ex: "401 tỷ" -> "401000000000".
+        - muc_tieu_du_an: Goals/objectives text.
+        - quy_mo_dau_tu: Scale/scope text. Preserve units.
+        - thoi_gian_thuc_hien: Duration/timeline info.
+        - thoi_gian_khoi_cong: Start date/time. If explicit start missing, extract from thoi_gian_thuc_hien (e.g., "Quý III, IV/2019" -> "Quý III/2019"; "từ X đến Y" -> X).
+        - thoi_gian_hoan_thanh: Completion date/time. If explicit end missing, extract from thoi_gian_thuc_hien (e.g., "Quý III, IV/2019" -> "Quý IV/2019"; "từ X đến Y" -> Y).
+        - thanh_phan_nguon_von: List [{{"stt": "1", "nguon_von": "", "gia_tri": ""}}].
+        CRITICAL: ALWAYS create at least 1 entry. NEVER return empty array [].
+
+#RULE: 
+    1. **DUY TRÌ TÍNH NHẤT QUÁN**: Đối với mỗi cặp Key-Value trong JSON input:
+    - Nếu Value **KHÔNG PHẢI null**: Tuyệt đối giữ nguyên giá trị cũ. Không được tìm kiếm, không được thay thế, không được suy luận lại thông tin này. Hãy coi đó là "Hằng số" (Constant).
+    - Nếu Value **LÀ null**: Chỉ khi đó bạn mới được phép đọc <context> để tìm thông tin điền vào.
+    2. **Nguyên tắc "TÌM THẤY LÀ DỪNG"**: 
+    - Một khi đã trích xuất được giá trị hợp lệ cho một trường null, hãy chuyển sang trường null tiếp theo ngay lập tức.
+    - Không thực hiện các bước kiểm tra chéo dư thừa giữa các trường đã có dữ liệu.
   
 EXTRACTION ALGORITHM (Step-by-step):  
     STEP 1 - LOCATE FUNDING SOURCE:
@@ -52,58 +55,61 @@ EXTRACTION ALGORITHM (Step-by-step):
     - Set stt = "1" for first entry
     - If multiple sources, increment stt: "1", "2", "3"...
   
-EXAMPLES:
-    Example 1:
-        Text: "7. Giá trị tổng mức đầu tư: 2.809.035.000 đồng"
-                "8. Nguồn vốn đầu tư: Ngân sách UBND TP Hà Nội bổ sung năm 2019"
-        Output: [{{"stt": "1", "nguon_von": "Vốn trong nước", "gia_tri": "2809035000"}}]
-    
-    Example 2:
-        Text: "Tổng mức đầu tư: 500 tỷ"
-                "Nguồn vốn: Ngân sách nhà nước"
-        Output: [{{"stt": "1", "nguon_von": "Vốn trong nước", "gia_tri": "500000000000"}}]
-    
-    Example 3:
-        Text: "Tổng mức: 1 tỷ"
-                "Nguồn vốn: - Ngân sách TW: 600 triệu"
-                "           - Ngân sách địa phương: 400 triệu"
-        Output: [{{"stt": "1", "nguon_von": "Vốn trong nước", "gia_tri": "600000000"}},
-                {{"stt": "2", "nguon_von": "Vốn trong nước", "gia_tri": "400000000"}}]
-    
-    Example 4 (No explicit source):
-        Text: "Tổng mức: 2 tỷ" (no funding source mentioned)
-        Output: [{{"stt": "1", "nguon_von": "Vốn khác", "gia_tri": "2000000000"}}]
+    EXAMPLES:
+        Example 1:
+            Text: "7. Giá trị tổng mức đầu tư: 2.809.035.000 đồng"
+                    "8. Nguồn vốn đầu tư: Ngân sách UBND TP Hà Nội bổ sung năm 2019"
+            Output: [{{"stt": "1", "nguon_von": "Vốn trong nước", "gia_tri": "2809035000"}}]
         
-OUTPUT FORMAT:
+        Example 2:
+            Text: "Tổng mức đầu tư: 500 tỷ"
+                    "Nguồn vốn: Ngân sách nhà nước"
+            Output: [{{"stt": "1", "nguon_von": "Vốn trong nước", "gia_tri": "500000000000"}}]
+        
+        Example 3:
+            Text: "Tổng mức: 1 tỷ"
+                    "Nguồn vốn: - Ngân sách TW: 600 triệu"
+                    "           - Ngân sách địa phương: 400 triệu"
+            Output: [{{"stt": "1", "nguon_von": "Vốn trong nước", "gia_tri": "600000000"}},
+                    {{"stt": "2", "nguon_von": "Vốn trong nước", "gia_tri": "400000000"}}]
+        
+        Example 4 (No explicit source):
+            Text: "Tổng mức: 2 tỷ" (no funding source mentioned)
+            Output: [{{"stt": "1", "nguon_von": "Vốn khác", "gia_tri": "2000000000"}}]
+        
+#OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
-    - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
-    - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
+    - Nếu tìm thấy VALUE của một KEY, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
+    - Nếu không tìm thấy VALUE, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
     - Không thêm bất kỳ lời dẫn hay lời giải thích nào.
   
 CONTEXT:
 {context}
 
 JSON INPUT:
-{result_json}
+{json_template}
 
 """
 
 
 KE_HOACH_LCNT_PROMPT = """
-#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. 
-
-#TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
-Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
-Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
-
-JSON input bao gồm các trường thông tin sau:
-FIELDS:
-    - so_quyet_dinh: Doc number (top left).
-    - ngay_ky: Date (top right).
-    - du_an: Project name. KEEP prefix "Dự án", "Công trình". Extract EXACTLY as written. DO NOT remove prefix.
-    - giai_doan: Phase/scope. Example: "giai_doan: giai đoạn chuẩn bị đầu tư" or further
-    - ten_ke_hoach_vn: Extract string starting "Kế hoạch lựa chọn nhà thầu..." including project name lines. Stop before "Phê duyệt"/"Quyết định". CLEAN HTML/Tags. Merge to single string.
-    - ten_ke_hoach_en: English plan name (null if missing).
+#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. Nhiệm vụ của bạn là hoàn thiện một cấu trúc JSON dựa trên văn bản <context> được cung cấp.
+JSON INPUT bao gồm các trường thông tin sau:
+    FIELDS:
+        - so_quyet_dinh: Doc number (top left).
+        - ngay_ky: Date (top right).
+        - du_an: Project name. KEEP prefix "Dự án", "Công trình". Extract EXACTLY as written. DO NOT remove prefix.
+        - giai_doan: Phase/scope. Example: "giai_doan: giai đoạn chuẩn bị đầu tư" or further
+        - ten_ke_hoach_vn: Extract string starting "Kế hoạch lựa chọn nhà thầu..." including project name lines. Stop before "Phê duyệt"/"Quyết định". CLEAN HTML/Tags. Merge to single string.
+        - ten_ke_hoach_en: English plan name (null if missing).
+        
+#RULE: 
+    1. **DUY TRÌ TÍNH NHẤT QUÁN**: Đối với mỗi cặp Key-Value trong JSON input:
+    - Nếu Value **KHÔNG PHẢI null**: Tuyệt đối giữ nguyên giá trị cũ. Không được tìm kiếm, không được thay thế, không được suy luận lại thông tin này. Hãy coi đó là "Hằng số" (Constant).
+    - Nếu Value **LÀ null**: Chỉ khi đó bạn mới được phép đọc <context> để tìm thông tin điền vào.
+    2. **Nguyên tắc "TÌM THẤY LÀ DỪNG"**: 
+    - Một khi đã trích xuất được giá trị hợp lệ cho một trường null, hãy chuyển sang trường null tiếp theo ngay lập tức.
+    - Không thực hiện các bước kiểm tra chéo dư thừa giữa các trường đã có dữ liệu.
 
 **SIGNATURE EXTRACTION (ULTRA-STRICT LINE-BY-LINE ALGORITHM)**
 
@@ -170,7 +176,7 @@ FIELDS:
 
     co_quan_ban_hanh: Issuing agency (top left). IGNORE first line. Take from 2nd line down. MERGE lines. REMOVE HTML tags.
     
-OUTPUT FORMAT:
+#OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
     - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
@@ -180,39 +186,42 @@ CONTEXT:
 {context}
 
 JSON INPUT:
-{result_json}
+{json_template}
 
 """
 
 
 THONG_TIN_DU_AN_PROMPT = """
-#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. 
-
-#TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
-Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
-Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
-
-JSON input bao gồm các trường thông tin sau:
-FIELDS:
-    - so_quyet_dinh: Document number.
-    - ngay_quyet_dinh: Date.
-    - ma_du_an: Project code.
-    - ten_du_an: Full name. KEEP prefix "Dự án", "Công trình" if present. Extract EXACTLY as written. DO NOT remove prefix.
-    - chu_dau_tu: Primary investor only. If multiple, pick main one.
-    - chu_truong_dau_tu: Investment policy name.
-    - trang_thai_du_an: Implementation status.
-    - trang_thai_thanh_tra: Inspection status.
-    - trang_thai_kiem_toan: Audit status.
-    - nhom_du_an: Project group (from "Nhóm:").
-    - linh_vuc: Sector/field.
-    - don_vi_xu_ly_quyet_toan: Settlement unit.
-    - loai_cong_trinh: Type of construction. Look for "Hình thức đầu tư:" section.
-    - cap_cong_trinh: Grade/level.
-    - hinh_thuc_quan_ly: Management method. Look for "Hình thức ", "Quản lý ", "Quản lý dự án "  section
-    - thoi_gian_thuc_hien: Start info. If explicit start missing, extract from duration strings (e.g. "from X to Y" -> X).
-    - thoi_gian_ket_thuc: End info. If explicit end missing, extract from duration strings (e.g. "from X to Y" -> Y).
-    - dia_diem_trien_khai: List locations [{{"stt": "", "tinh_thanh_pho": "", "phuong_xa": "", "dia_chi_chi_tiet": ""}}]. Split address string smart.
-    - thanh_phan_khoan_muc: List major costs [{{"stt": "", "thanh_phan": "", "gia_tri": ""}}]
+#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. Nhiệm vụ của bạn là hoàn thiện một cấu trúc JSON dựa trên văn bản <context> được cung cấp.
+JSON INPUT bao gồm các trường thông tin sau:
+    FIELDS:
+        - so_quyet_dinh: Document number.
+        - ngay_quyet_dinh: Date.
+        - ma_du_an: Project code.
+        - ten_du_an: Full name. KEEP prefix "Dự án", "Công trình" if present. Extract EXACTLY as written. DO NOT remove prefix.
+        - chu_dau_tu: Primary investor only. If multiple, pick main one.
+        - chu_truong_dau_tu: Investment policy name.
+        - trang_thai_du_an: Implementation status.
+        - trang_thai_thanh_tra: Inspection status.
+        - trang_thai_kiem_toan: Audit status.
+        - nhom_du_an: Project group (from "Nhóm:").
+        - linh_vuc: Sector/field.
+        - don_vi_xu_ly_quyet_toan: Settlement unit.
+        - loai_cong_trinh: Type of construction. Look for "Hình thức đầu tư:" section.
+        - cap_cong_trinh: Grade/level.
+        - hinh_thuc_quan_ly: Management method. Look for "Hình thức ", "Quản lý ", "Quản lý dự án "  section
+        - thoi_gian_thuc_hien: Start info. If explicit start missing, extract from duration strings (e.g. "from X to Y" -> X).
+        - thoi_gian_ket_thuc: End info. If explicit end missing, extract from duration strings (e.g. "from X to Y" -> Y).
+        - dia_diem_trien_khai: List locations [{{"stt": "", "tinh_thanh_pho": "", "phuong_xa": "", "dia_chi_chi_tiet": ""}}]. Split address string smart.
+        - thanh_phan_khoan_muc: List major costs [{{"stt": "", "thanh_phan": "", "gia_tri": ""}}]
+        
+#RULE: 
+    1. **DUY TRÌ TÍNH NHẤT QUÁN**: Đối với mỗi cặp Key-Value trong JSON input:
+    - Nếu Value **KHÔNG PHẢI null**: Tuyệt đối giữ nguyên giá trị cũ. Không được tìm kiếm, không được thay thế, không được suy luận lại thông tin này. Hãy coi đó là "Hằng số" (Constant).
+    - Nếu Value **LÀ null**: Chỉ khi đó bạn mới được phép đọc <context> để tìm thông tin điền vào.
+    2. **Nguyên tắc "TÌM THẤY LÀ DỪNG"**: 
+    - Một khi đã trích xuất được giá trị hợp lệ cho một trường null, hãy chuyển sang trường null tiếp theo ngay lập tức.
+    - Không thực hiện các bước kiểm tra chéo dư thừa giữa các trường đã có dữ liệu.
 
 **CRITICAL: MANDATORY ABBREVIATION REQUIREMENT**
 
@@ -406,7 +415,7 @@ FORMAT: INTEGER ONLY (remove dots, commas, currency symbols)
   {{"stt": "3", "thanh_phan": "CHI PHÍ TƯ VẤN", "gia_tri": "227200394"}}
 ]
 
-OUTPUT FORMAT:
+#OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
     - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
@@ -416,35 +425,38 @@ CONTEXT:
 {context}
 
 JSON INPUT:
-{result_json}
+{json_template}
 
 """
 
 QUAN_LY_GOI_THAU_PROMPT = """
-#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. 
-
-#TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
-Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
-Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
-
-JSON input bao gồm các trường thông tin sau:
-FIELDS:
-    - ma_goi_thau: Bid code ("Mã gói thầu:").
-    - ten_goi_thau: Package name. KEEP prefix "Gói thầu", "Gói thầu số". Extract EXACTLY as written. (e.g. "Gói thầu số 01: XL" -> "Gói thầu số 01: XL").
-    - du_an: Project name. KEEP prefix. Extract EXACTLY as written. DO NOT remove prefix.
-    - ke_hoach_lcnt: Plan number/name.
-    - gia_du_toan: FORMAT: INTEGER ONLY string (VNĐ). PRIORITY 1: Find explicit "Dự toán:" OR "Tổng dự toán:" OR "Tổng cộng:" line. PRIORITY 2: Sum if needed. WARNING: CALCULATE SLOWLY AND PRECISELY. Handle all units: "trăm nghìn tỷ"->x10^15,"chục nghìn tỷ"->x10^14,"nghìn tỷ"->x10^12, "trăm tỷ" ->x10^11, "chục tỷ" ->x10^10, "tỷ"->x10^9,"trăm triệu"->x10^8,"chục triệu"->x10^7, "triệu"->x10^6, "trăm nghìn"->x10^5,"chục nghìn"->x10^4, "nghìn"->x10^3, "trăm"->x100, "chục"->x10. REMOVE dots/commas/text. Ex: "401 tỷ" -> "401000000000".
-    - gia_goi_thau: FORMAT: INTEGER ONLY string (VNĐ). PRIORITY 1: Find explicit "Giá gói thầu:" OR "Giá:" OR "Tổng cộng:" line. PRIORITY 2: Sum if needed. WARNING: CALCULATE SLOWLY AND PRECISELY. Same units as gia_du_toan.
-    - hinh_thuc_lua_chon_nha_thau: Method (e.g. "Đấu thầu rộng rãi").
-    - phuong_thuc_lua_chon_nha_thau: Mode (e.g. "1 giai đoạn 1 túi hồ sơ").
-    - cach_thuc_thuc_hien_dau_thau: Approach (e.g. "Qua mạng").
-    - loai_nguon_von_du_an: Funding source.
-    - hinh_thuc_hop_dong: Contract type.
-    - linh_vuc_dau_thau: Field (e.g. "Xây lắp").
-    - thoi_gian_lua_chon_nha_thau: Selection time.
-    - thoi_gian_thuc_hien_hop_dong: Duration.
+#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. Nhiệm vụ của bạn là hoàn thiện một cấu trúc JSON dựa trên văn bản <context> được cung cấp. 
+JSON INPUT bao gồm các trường thông tin sau:
+    FIELDS:
+        - ma_goi_thau: Bid code ("Mã gói thầu:").
+        - ten_goi_thau: Package name. KEEP prefix "Gói thầu", "Gói thầu số". Extract EXACTLY as written. (e.g. "Gói thầu số 01: XL" -> "Gói thầu số 01: XL").
+        - du_an: Project name. KEEP prefix. Extract EXACTLY as written. DO NOT remove prefix.
+        - ke_hoach_lcnt: Plan number/name.
+        - gia_du_toan: FORMAT: INTEGER ONLY string (VNĐ). PRIORITY 1: Find explicit "Dự toán:" OR "Tổng dự toán:" OR "Tổng cộng:" line. PRIORITY 2: Sum if needed. WARNING: CALCULATE SLOWLY AND PRECISELY. Handle all units: "trăm nghìn tỷ"->x10^15,"chục nghìn tỷ"->x10^14,"nghìn tỷ"->x10^12, "trăm tỷ" ->x10^11, "chục tỷ" ->x10^10, "tỷ"->x10^9,"trăm triệu"->x10^8,"chục triệu"->x10^7, "triệu"->x10^6, "trăm nghìn"->x10^5,"chục nghìn"->x10^4, "nghìn"->x10^3, "trăm"->x100, "chục"->x10. REMOVE dots/commas/text. Ex: "401 tỷ" -> "401000000000".
+        - gia_goi_thau: FORMAT: INTEGER ONLY string (VNĐ). PRIORITY 1: Find explicit "Giá gói thầu:" OR "Giá:" OR "Tổng cộng:" line. PRIORITY 2: Sum if needed. WARNING: CALCULATE SLOWLY AND PRECISELY. Same units as gia_du_toan.
+        - hinh_thuc_lua_chon_nha_thau: Method (e.g. "Đấu thầu rộng rãi").
+        - phuong_thuc_lua_chon_nha_thau: Mode (e.g. "1 giai đoạn 1 túi hồ sơ").
+        - cach_thuc_thuc_hien_dau_thau: Approach (e.g. "Qua mạng").
+        - loai_nguon_von_du_an: Funding source.
+        - hinh_thuc_hop_dong: Contract type.
+        - linh_vuc_dau_thau: Field (e.g. "Xây lắp").
+        - thoi_gian_lua_chon_nha_thau: Selection time.
+        - thoi_gian_thuc_hien_hop_dong: Duration.
+        
+#RULE: 
+    1. **DUY TRÌ TÍNH NHẤT QUÁN**: Đối với mỗi cặp Key-Value trong JSON input:
+    - Nếu Value **KHÔNG PHẢI null**: Tuyệt đối giữ nguyên giá trị cũ. Không được tìm kiếm, không được thay thế, không được suy luận lại thông tin này. Hãy coi đó là "Hằng số" (Constant).
+    - Nếu Value **LÀ null**: Chỉ khi đó bạn mới được phép đọc <context> để tìm thông tin điền vào.
+    2. **Nguyên tắc "TÌM THẤY LÀ DỪNG"**: 
+    - Một khi đã trích xuất được giá trị hợp lệ cho một trường null, hãy chuyển sang trường null tiếp theo ngay lập tức.
+    - Không thực hiện các bước kiểm tra chéo dư thừa giữa các trường đã có dữ liệu.
     
-OUTPUT FORMAT:
+#OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
     - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
@@ -454,51 +466,54 @@ CONTEXT:
 {context}
 
 JSON INPUT:
-{result_json}
+{json_template}
 
 """
 
 HOP_DONG_PROMPT = """
-#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. 
+#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. Nhiệm vụ của bạn là hoàn thiện một cấu trúc JSON dựa trên văn bản <context> được cung cấp.
+JSON INPUT bao gồm các trường thông tin sau:
+    FIELDS:
+        - so_hop_dong: Contract number. Look for "Số:", "No.", "Hợp đồng số:" in header or first paragraph.
+        - ngay_ky_hop_dong: Date signed. Look for "ngày ... tháng ... năm ..." in preamble (e.g. "Hà Nội, ngày 18 tháng 09 năm 2019") or signature block. Format: dd/mm/yyyy.
+        - du_an: Project name. KEEP prefix. Extract EXACTLY as written. DO NOT remove prefix.
+        - goi_thau: Package name. KEEP prefix. Extract EXACTLY as written.
+        - ten_hop_dong: Contract name (e.g. "Hợp đồng thi công...", "Hợp đồng tư vấn...").
+            PARTIES EXTRACTION STRATEGY:
+            - "Bên A" (or "Bên Giao Thầu", "Chủ đầu tư") -> Investor Info.
+            - "Bên B" (or "Bên Nhận Thầu", "Nhà thầu", "Tư vấn") -> Contractor Info.
+            - Look in 2 places:
+                1. INTRODUCTION section (beginning of doc).
+                2. SIGNATURE block (end of doc).
 
-#TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
-Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
-Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
-
-JSON input bao gồm các trường thông tin sau:
-FIELDS:
-    - so_hop_dong: Contract number. Look for "Số:", "No.", "Hợp đồng số:" in header or first paragraph.
-    - ngay_ky_hop_dong: Date signed. Look for "ngày ... tháng ... năm ..." in preamble (e.g. "Hà Nội, ngày 18 tháng 09 năm 2019") or signature block. Format: dd/mm/yyyy.
-    - du_an: Project name. KEEP prefix. Extract EXACTLY as written. DO NOT remove prefix.
-    - goi_thau: Package name. KEEP prefix. Extract EXACTLY as written.
-    - ten_hop_dong: Contract name (e.g. "Hợp đồng thi công...", "Hợp đồng tư vấn...").
-        PARTIES EXTRACTION STRATEGY:
-        - "Bên A" (or "Bên Giao Thầu", "Chủ đầu tư") -> Investor Info.
-        - "Bên B" (or "Bên Nhận Thầu", "Nhà thầu", "Tư vấn") -> Contractor Info.
-        - Look in 2 places:
-            1. INTRODUCTION section (beginning of doc).
-            2. SIGNATURE block (end of doc).
-
-    - dai_dien_chu_dau_tu: Rep Name (Party A).
-    - chuc_vu: Rep Title (Party A). PROXY RULE: If line starts with "KT.", "TM.", "TL.", STRICTLY IGNORE it and extract the NEXT LINE as the title. Ex: "TM. UBND..." -> take "CHỦ TỊCH" (from line below).
-    - loai_hop_dong: Contract type (e.g. "Trọn gói", "Theo đơn giá cố định", "Theo thời gian"). Look in "Giá trị hợp đồng" or "Hình thức hợp đồng" section.
-    - ngay_hieu_luc_tu: Start date (dd/mm/yyyy). If explicit date missing, check "Thời gian thực hiện" (duration) -> Start.
-    - ngay_hieu_luc_den: End date (dd/mm/yyyy). If explicit date missing, check "Thời gian thực hiện" (duration) -> End.
-    - gia_tri_hop_dong: FORMAT: INTEGER ONLY string (VNĐ). PRIORITY 1: Find explicit "Giá trị hợp đồng:" OR "Tổng giá trị:" OR "Tổng cộng:" line. PRIORITY 2: Sum if needed. WARNING: CALCULATE SLOWLY AND PRECISELY. Handle all units: "trăm nghìn tỷ"->x10^15,"chục nghìn tỷ"->x10^14,"nghìn tỷ"->x10^12, "trăm tỷ" ->x10^11, "chục tỷ" ->x10^10, "tỷ"->x10^9,"trăm triệu"->x10^8,"chục triệu"->x10^7, "triệu"->x10^6, "trăm nghìn"->x10^5,"chục nghìn"->x10^4, "nghìn"->x10^3, "trăm"->x100, "chục"->x10. REMOVE dots/commas/text. Ex: "401 tỷ" -> "401000000000".
-    - gia_tri_bao_lanh_bao_hanh: Guarantee value. FORMAT: INTEGER ONLY (same units as gia_tri_hop_dong).
-    - gia_tri_vat: VAT value/percent.
-    - loai_hop_dong_nha_thau: "Liên doanh" (if "Bên B" lists >=2 distinct companies or mentions "Liên danh"), else "Không liên doanh".
-    - danh_sach_nha_thau: Array [{{"stt": "1", "nt_chinh": "true/false", "nha_thau": "Name", "loai_nha_thau": "Tổ chức/Cá nhân", "gia_tri_thuc_hien": "INTEGER ONLY"}}].
-        RULES:
-        - Find "Đại diện Nhà thầu" or "Bên B" section
-        - nha_thau: Extract from "Tên giao dịch:" or company name after "Đại diện Nhà thầu"
-        - loai_nha_thau: "Tổ chức" if contains "Công ty"/"TNHH"/"Cổ phần", else "Cá nhân"
-        - nt_chinh: "true" for first/only contractor, "false" for others
-        - gia_tri_thuc_hien: Use gia_tri_hop_dong if only 1 contractor, else extract individual value
-        - If multiple contractors ("Liên danh"), create separate entries
-        Example: "Tên giao dịch: Công ty TNHH Kiểm toán APEC" → {{"nha_thau": "Công ty TNHH Kiểm toán APEC", "loai_nha_thau": "Tổ chức"}}
+        - dai_dien_chu_dau_tu: Rep Name (Party A).
+        - chuc_vu: Rep Title (Party A). PROXY RULE: If line starts with "KT.", "TM.", "TL.", STRICTLY IGNORE it and extract the NEXT LINE as the title. Ex: "TM. UBND..." -> take "CHỦ TỊCH" (from line below).
+        - loai_hop_dong: Contract type (e.g. "Trọn gói", "Theo đơn giá cố định", "Theo thời gian"). Look in "Giá trị hợp đồng" or "Hình thức hợp đồng" section.
+        - ngay_hieu_luc_tu: Start date (dd/mm/yyyy). If explicit date missing, check "Thời gian thực hiện" (duration) -> Start.
+        - ngay_hieu_luc_den: End date (dd/mm/yyyy). If explicit date missing, check "Thời gian thực hiện" (duration) -> End.
+        - gia_tri_hop_dong: FORMAT: INTEGER ONLY string (VNĐ). PRIORITY 1: Find explicit "Giá trị hợp đồng:" OR "Tổng giá trị:" OR "Tổng cộng:" line. PRIORITY 2: Sum if needed. WARNING: CALCULATE SLOWLY AND PRECISELY. Handle all units: "trăm nghìn tỷ"->x10^15,"chục nghìn tỷ"->x10^14,"nghìn tỷ"->x10^12, "trăm tỷ" ->x10^11, "chục tỷ" ->x10^10, "tỷ"->x10^9,"trăm triệu"->x10^8,"chục triệu"->x10^7, "triệu"->x10^6, "trăm nghìn"->x10^5,"chục nghìn"->x10^4, "nghìn"->x10^3, "trăm"->x100, "chục"->x10. REMOVE dots/commas/text. Ex: "401 tỷ" -> "401000000000".
+        - gia_tri_bao_lanh_bao_hanh: Guarantee value. FORMAT: INTEGER ONLY (same units as gia_tri_hop_dong).
+        - gia_tri_vat: VAT value/percent.
+        - loai_hop_dong_nha_thau: "Liên doanh" (if "Bên B" lists >=2 distinct companies or mentions "Liên danh"), else "Không liên doanh".
+        - danh_sach_nha_thau: Array [{{"stt": "1", "nt_chinh": "true/false", "nha_thau": "Name", "loai_nha_thau": "Tổ chức/Cá nhân", "gia_tri_thuc_hien": "INTEGER ONLY"}}].
+            RULES:
+            - Find "Đại diện Nhà thầu" or "Bên B" section
+            - nha_thau: Extract from "Tên giao dịch:" or company name after "Đại diện Nhà thầu"
+            - loai_nha_thau: "Tổ chức" if contains "Công ty"/"TNHH"/"Cổ phần", else "Cá nhân"
+            - nt_chinh: "true" for first/only contractor, "false" for others
+            - gia_tri_thuc_hien: Use gia_tri_hop_dong if only 1 contractor, else extract individual value
+            - If multiple contractors ("Liên danh"), create separate entries
+            Example: "Tên giao dịch: Công ty TNHH Kiểm toán APEC" → {{"nha_thau": "Công ty TNHH Kiểm toán APEC", "loai_nha_thau": "Tổ chức"}}
+            
+#RULE: 
+    1. **DUY TRÌ TÍNH NHẤT QUÁN**: Đối với mỗi cặp Key-Value trong JSON input:
+    - Nếu Value **KHÔNG PHẢI null**: Tuyệt đối giữ nguyên giá trị cũ. Không được tìm kiếm, không được thay thế, không được suy luận lại thông tin này. Hãy coi đó là "Hằng số" (Constant).
+    - Nếu Value **LÀ null**: Chỉ khi đó bạn mới được phép đọc <context> để tìm thông tin điền vào.
+    2. **Nguyên tắc "TÌM THẤY LÀ DỪNG"**: 
+    - Một khi đã trích xuất được giá trị hợp lệ cho một trường null, hãy chuyển sang trường null tiếp theo ngay lập tức.
+    - Không thực hiện các bước kiểm tra chéo dư thừa giữa các trường đã có dữ liệu.
         
-OUTPUT FORMAT:
+#OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
     - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
@@ -508,10 +523,18 @@ CONTEXT:
 {context}
 
 JSON INPUT:
-{result_json}
+{json_template}
 """
 
-THANH_TOAN_TAM_UNG_PROMPT = """Extract Payment/Advance/Settlement info from FORM-BASED document.
+THANH_TOAN_TAM_UNG_PROMPT = """
+#ROLE: Bạn là một chuyên gia trích xuất dữ liệu từ văn bản hành chính Việt Nam. Nhiệm vụ của bạn là hoàn thiện một cấu trúc JSON dựa trên văn bản <context> được cung cấp.
+#RULE: 
+    1. **DUY TRÌ TÍNH NHẤT QUÁN**: Đối với mỗi cặp Key-Value trong JSON input:
+    - Nếu Value **KHÔNG PHẢI null**: Tuyệt đối giữ nguyên giá trị cũ. Không được tìm kiếm, không được thay thế, không được suy luận lại thông tin này. Hãy coi đó là "Hằng số" (Constant).
+    - Nếu Value **LÀ null**: Chỉ khi đó bạn mới được phép đọc <context> để tìm thông tin điền vào.
+    2. **Nguyên tắc "TÌM THẤY LÀ DỪNG"**: 
+    - Một khi đã trích xuất được giá trị hợp lệ cho một trường null, hãy chuyển sang trường null tiếp theo ngay lập tức.
+    - Không thực hiện các bước kiểm tra chéo dư thừa giữa các trường đã có dữ liệu.
 
 **CRITICAL: ANTI-SKEW EXTRACTION FOR TILTED/SKEWED PDFs**
 
@@ -930,7 +953,7 @@ giu_lai_cho_quyet_toan: Amount retained for settlement.
 ✓ Verified numbers match their labels
 ✓ Returned null when uncertain (no guessing)
 
-OUTPUT FORMAT:
+#OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
     - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
@@ -940,7 +963,7 @@ CONTEXT:
 {context}
 
 JSON INPUT:
-{result_json}
+{json_template}
 
 """
 
@@ -962,6 +985,6 @@ class PromptService():
         
         template = self.prompt_template.get(doc_type)
         
-        context_prompt = template.format(context = context, result_json = json_template)
+        context_prompt = template.format(context = context, json_template = json_template)
         
         return context_prompt
