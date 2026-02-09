@@ -129,8 +129,8 @@ class THANHTOANTAMUNG(BaseModel):
 MODEL_LLM_NAME = 'qwen2.5:latest'
     
 class LLMService:
-    def __init__(self, MODEL_LLM_NAME):
-        self.name_model = MODEL_LLM_NAME
+    def __init__(self, model_name = MODEL_LLM_NAME):
+        self.name_model = model_name
         self.prompt_service = PromptService()
         self.extraction_config = {
             "CHU_TRUONG": {"model": CHUTRUONG},
