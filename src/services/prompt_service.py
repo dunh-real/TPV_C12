@@ -10,7 +10,9 @@ CHU_TRUONG_PROMPT = """
 
 #TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
 Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
-JSON input bao gồm các trường thông tin sau:
+Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
+
+JSON INPUT bao gồm các trường thông tin sau:
 FIELDS:
     - so_quyet_dinh: Doc number (after "Số:", "Số QĐ:", "Số TTr:", "Số BC:").
     - ngay_quyet_dinh: Date (dd/MM/yyyy). Keep original format if unsure.
@@ -75,7 +77,7 @@ EXAMPLES:
 OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
-    - Nếu không tìm thấy thông tin, cần để nguyên giá trị 'null'.
+    - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
     - Không thêm bất kỳ lời dẫn hay lời giải thích nào.
   
 CONTEXT:
@@ -92,6 +94,8 @@ KE_HOACH_LCNT_PROMPT = """
 
 #TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
 Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
+Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
+
 JSON input bao gồm các trường thông tin sau:
 FIELDS:
     - so_quyet_dinh: Doc number (top left).
@@ -169,7 +173,7 @@ FIELDS:
 OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
-    - Nếu không tìm thấy thông tin, cần để nguyên giá trị 'null'.
+    - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
     - Không thêm bất kỳ lời dẫn hay lời giải thích nào.
 
 CONTEXT:
@@ -186,6 +190,8 @@ THONG_TIN_DU_AN_PROMPT = """
 
 #TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
 Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
+Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
+
 JSON input bao gồm các trường thông tin sau:
 FIELDS:
     - so_quyet_dinh: Document number.
@@ -403,7 +409,7 @@ FORMAT: INTEGER ONLY (remove dots, commas, currency symbols)
 OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
-    - Nếu không tìm thấy thông tin, cần để nguyên giá trị 'null'.
+    - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
     - Không thêm bất kỳ lời dẫn hay lời giải thích nào.
 
 CONTEXT:
@@ -419,6 +425,8 @@ QUAN_LY_GOI_THAU_PROMPT = """
 
 #TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
 Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
+Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
+
 JSON input bao gồm các trường thông tin sau:
 FIELDS:
     - ma_goi_thau: Bid code ("Mã gói thầu:").
@@ -439,7 +447,7 @@ FIELDS:
 OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
-    - Nếu không tìm thấy thông tin, cần để nguyên giá trị 'null'.
+    - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
     - Không thêm bất kỳ lời dẫn hay lời giải thích nào.
 
 CONTEXT:
@@ -455,6 +463,8 @@ HOP_DONG_PROMPT = """
 
 #TASK: Bạn sẽ nhận được một văn bản hành chính (dạng markdown) và JSON input. Hiện tại, một số trường trong JSON đang có giá trị là 'null'. 
 Bạn cần đọc văn bản <context> được cung cấp, từ đó trích xuất ra các thông tin cần thiết và thay thế giá trị 'null' bằng các thông tin được tìm kiếm.
+Nếu các trường đã có giá trị (không phải là 'null'), bỏ qua và không tìm kiếm thông tin của các trường này.
+
 JSON input bao gồm các trường thông tin sau:
 FIELDS:
     - so_hop_dong: Contract number. Look for "Số:", "No.", "Hợp đồng số:" in header or first paragraph.
@@ -491,7 +501,7 @@ FIELDS:
 OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
-    - Nếu không tìm thấy thông tin, cần để nguyên giá trị 'null'.
+    - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
     - Không thêm bất kỳ lời dẫn hay lời giải thích nào.
 
 CONTEXT:
@@ -923,7 +933,7 @@ giu_lai_cho_quyet_toan: Amount retained for settlement.
 OUTPUT FORMAT:
     - Chỉ trả về duy nhất định dạng JSON. BẮT BUỘC tuân theo định dạng đầu vào của JSON. TUYỆT ĐỐI không thay đổi trên trường (key) trong JSON.
     - Nếu tìm thấy thông tin của một trường, hãy thay thế giá trị 'null' bằng thông tin vừa được trích xuất.
-    - Nếu không tìm thấy thông tin, cần để nguyên giá trị 'null'.
+    - Nếu không tìm thấy thông tin, CẦN GIỮ NGUYÊN GIÁ TRỊ 'null', KHÔNG TỰ Ý BỊA RA KẾT QUẢ.
     - Không thêm bất kỳ lời dẫn hay lời giải thích nào.
 
 CONTEXT:
@@ -945,13 +955,13 @@ class PromptService():
             "THANH_TOAN_TAM_UNG": THANH_TOAN_TAM_UNG_PROMPT
         }
         
-    def get_prompt_by_type(self, doc_type, context, result_json):
+    def get_prompt_by_type(self, doc_type, context, json_template):
         """
         Tìm kiếm prompt tương ứng với doc_type và fill dữ liệu vào template.
         """
         
         template = self.prompt_template.get(doc_type)
         
-        context_prompt = template.format(context = context, result_json = result_json)
+        context_prompt = template.format(context = context, result_json = json_template)
         
         return context_prompt
