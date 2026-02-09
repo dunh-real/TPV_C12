@@ -16,3 +16,4 @@ last_pix = last_page.get_pixmap(dpi = 200)
 first_pix.save(f"{IMAGE_PATH}/first_page.png")
 last_pix.save(f"{IMAGE_PATH}/last_page.png")
 doc.close()
+
