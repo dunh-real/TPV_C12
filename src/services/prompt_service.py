@@ -1,6 +1,6 @@
 import json
 
-"""BUILD LIST PROMPT FOR SYSTEM"""
+"""Prompt Service: Build list prompt for document type"""
 
 context = ""
 result_json = {}

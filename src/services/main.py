@@ -1,3 +1,4 @@
+import fitz
 from ocr_service import OCRService
 from extractor_service import extract_metadata_rules
 from vllm import LLM, SamplingParams
@@ -20,9 +21,17 @@ step 3: extract wanted informatino from TEXT using extract_document_info from sr
 ocr_service = OCRService()
 llm_service = LLMService()
 
+# Check Value is None
+def has_none(data):
+    if data is None:
+        return True
+    if isinstance(data, dict):
+        return any(has_none(v) for k, v in data.items() if k != 'doc_type')
+    if isinstance(data, list):
+        return any(has_none(i) for i in data)
+    return False
+
 def processing_img(img_files, json_template):
-    
-    start_time = time.perf_counter()
     
     doc_type = json_template['doc_type']
     
@@ -37,57 +46,65 @@ def processing_img(img_files, json_template):
         # Text -> LLM Extractor -> JSON Output
         json_template = llm_service.extract_document_info(doc_type, text, json_template)
         
-        if None not in json_template.values(): 
+        if not has_none(json_template): 
             break
-
-    ex_time = time.perf_counter() - start_time
-
-    print(f"Executed time: {ex_time:.4f} seconds")
     
     return json_template
 
-def main(): 
-    # Path pdf file and img folder
+def main():
+    # API return pdf file
     PDF_PATH = "../../data/raw/QĐ 8327-QĐ-BCA-H01 30-10-19 phê duyệt chủ trương đầu tư 53r4534.pdf"
+    
+    # Path img folder
     IMAGE_DIR_PATH = "../../data/images"
     
-    # Convert PDF to IMG and save IMG
-    PDF2IMG(PDF_PATH, IMAGE_DIR_PATH)
+    document = fitz.open(PDF_PATH)
     
-    # List IMG from folder
-    img_files = list(Path(IMAGE_DIR_PATH).glob("*.png"))
+    first_idx_page = 0
+    last_idx_page = document.page_count - 1
     
-    # Key string need extract from text   
-    print("Enter Key Value:")
-    user_input = input()
-     
-    # Create JSON template  
-    key = user_input.split() 
-    json_template = {
-        "doc_type": key[0]
-    }   
-    for i in range(1, len(key)):
-        json_template[key[i]] = None
-
+    # API return json template
+    json_template = None
+    
+    """
+    Struct JSON:
+    {
+        'doc_type': One of the list [CHU_TRUONG, THONG_TIN_DU_AN, KE_H0ACH_LCNT, QUAN_LY_GOI_THAU, HOP_DONG, THANH_TOAN_TAM_UNG] (must have)
+        'key_1' : None
+        'key_2' : None
+        ...
+    }
+    """
+    
     # Before result extraction
     print(f"Kết quả trước khi trích xuất:\n {json_template}")
-            
-    # Extracting
-    result_json = processing_img(img_files, json_template)
+    
+    while first_idx_page <= last_idx_page:     
+        # Convert PDF to IMG and save IMG
+        PDF2IMG(PDF_PATH, IMAGE_DIR_PATH, first_idx_page, last_idx_page)
         
+        # List IMG from folder
+        if first_idx_page < last_idx_page:
+            img_files = [Path(IMAGE_DIR_PATH) / f"{first_idx_page}.png", 
+                            Path(IMAGE_DIR_PATH) / f"{last_idx_page}.png"]
+        else:
+            img_files = [Path(IMAGE_DIR_PATH) / f"{first_idx_page}.png"]
+                
+        # Extracting
+        json_template = processing_img(img_files, json_template)
+        
+        if not has_none(json_template):
+            break
+        
+        first_idx_page += 1
+        last_idx_page -= 1
+            
     # After result extraction
-    print(f"Kết quả sau khi trích xuất:\n {result_json}")
-    print(type(result_json))
+    print(f"Kết quả sau khi trích xuất:\n {json_template}")
+    print(type(json_template))
+    
+    return json_template
     
 if __name__ == "__main__":
     main()
-
-"""
-sửa lại trong llm_service hoặc prompt_service:
-output format là markdown:
-Như hôm trước anh nói, dùng các dấu header để phân biệt từng item, tên item, nội dung item cụ thể
-Sau đó trong file main, em mới xử lý split cái string đó, rồi áp từng nội dung vào json
-
-Đoạn lấy text ra, nhớ phải để nó append được đủ text từ 2 trang (trang đầu + trang cuối) rồi mới xử lý bằng con LLM nhé.
-test thì thấy nó sai 4/11 trơờng rồi này, accuracy của nó đang thấp quá.
-"""
+    
