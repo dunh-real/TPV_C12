@@ -196,7 +196,7 @@ THONG_TIN_DU_AN_PROMPT = """
 JSON INPUT bao gồm các trường thông tin sau:
     FIELDS:
         - so_quyet_dinh: Document number.
-        - ngay_quyet_dinh: Date.
+        - ngay_quyet_dinh: Date (dd/MM/yyyy).
         - ma_du_an: Project code.
         - ten_du_an: Full name. KEEP prefix "Dự án", "Công trình" if present. Extract EXACTLY as written. DO NOT remove prefix.
         - chu_dau_tu: Primary investor only. If multiple, pick main one.
