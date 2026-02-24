@@ -8,7 +8,7 @@ from prompt_service import PromptService
 LLM Service: Extract information from text -> Return JSON output
 """
 
-MODEL_LLM_NAME = 'qwen2.5:latest'
+MODEL_LLM_NAME = 'gemma:2b'
 
 class LLMService:
     def __init__(self, model_name = MODEL_LLM_NAME):
