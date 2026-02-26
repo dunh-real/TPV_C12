@@ -19,7 +19,9 @@ class OCRService:
             dtype = "bfloat16",
             trust_remote_code = True,
             limit_mm_per_prompt = {"image": 1},
-            gpu_memory_utilization = 0.6,
+            mm_processor_cache_gb = 0,
+            enable_prefix_caching = False,
+            gpu_memory_utilization = 0.25,
             enforce_eager = True
         )
         
