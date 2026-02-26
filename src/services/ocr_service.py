@@ -25,8 +25,9 @@ class OCRService:
         
         # cau hinh sampling: temperature thap nhat de chinh xac
         self.sampling_params = SamplingParams(
-            temperature = 0.0,
+            temperature = 0.2,
             max_tokens = 4096,
+            top_p = 0.9,
             stop_token_ids = [151643, 151645],
             repetition_penalty = 1.05
         )
@@ -50,7 +51,7 @@ class OCRService:
         proccessed_img = self._resize_image(pil_image)
         
         # 2. prepare prompt
-        prompt = "<|vision_start|><|image_pad|><|vision_end|>"
+        prompt = "Trích xuất toàn bộ nội dung văn bản từ hình ảnh này. Đây là tài liệu tiếng Việt. Giữ nguyên định dạng bullet points và số liệu. Đảm bảo không bỏ sót bất kỳ đoạn văn bản nào.<|vision_start|><|image_pad|><|vision_end|>"
         
         inputs = {
             "prompt": prompt,
